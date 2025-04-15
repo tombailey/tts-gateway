@@ -1,0 +1,12 @@
+[package]
+name = "cache"
+edition = "2024"
+version.workspace = true
+
+[dependencies]
+async-trait = { workspace = true }
+bytes = { workspace = true }
+env = { workspace = true }
+futures = { workspace = true }
+rust-s3 = { workspace = true }
+thiserror = { workspace = true }

@@ -1,0 +1,45 @@
+[workspace]
+members = [
+    "api",
+    "cache",
+    "gcp",
+    "openai",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.0.0"
+
+[profile.release]
+lto = true
+strip = "debuginfo"
+
+[workspace.dependencies]
+actix-http = "3.3.1"
+actix-rt = "2.8.0"
+actix-service = "2.0.2"
+actix-web = "4"
+async-trait = "0.1.77"
+base64 = "0.22.1"
+blake3 = "1.8.2"
+bytes = "1"
+cache = { path = "./cache" }
+env = { path = "./env" }
+futures = "0.3.29"
+gcp = { path = "./gcp" }
+openai = { path = "./openai" }
+rand = "0.9.1"
+reqwest = { version = "0.12.15", features = ["rustls-tls", "stream"] }
+reqwest-middleware = { version = "0.3", features = ["json"] }
+reqwest-retry = "0.7.0"
+rust-s3 = { version = "0.34.0", features = ["tokio-rustls-tls"] }
+serde = { version = "1.0.144", features = ["derive"] }
+serde-enum-str = "0.4.0"
+serde_json = "1"
+thiserror = "2.0.12"
+tokio = { version = "1.44", features = ["macros", "sync"] }
+tokio-stream = "0.1.17"
+tracing = "0.1"
+tracing-actix-web = { version = "0.7", features = [] }
+tracing-futures = "0.2.5"
+tracing-subscriber = { version = "0.2.5", features = ["json"] }
