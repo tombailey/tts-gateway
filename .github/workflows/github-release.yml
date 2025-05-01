@@ -1,0 +1,41 @@
+name: GitHub release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2025-02-17
+          components: rustfmt
+          targets: x86_64-unknown-linux-gnu
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2025-02-17
+          override: true
+          components: clippy
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/release/tts-gateway
+          asset_name: tts-gateway
+          tag: 0.0.0-${{ github.sha }}
+          overwrite: false
+          release_name: tts-gateway-0.0.0-${{ github.sha }}
+          body: ""

@@ -1,0 +1,32 @@
+name: Lint
+
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2025-02-17
+          override: true
+          components: clippy
+
+      - run: cargo +nightly-2025-02-17 clippy -- --allow async-fn-in-trait --deny warnings
+  unused-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2025-02-17
+          override: true
+          components: clippy
+
+      - run: cargo +nightly-2025-02-17 install cargo-binstall@1.6.9
+      - run: cargo +nightly-2025-02-17 binstall --no-confirm cargo-udeps --locked
+      - run: cargo +nightly-2025-02-17 udeps
