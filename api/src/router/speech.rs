@@ -30,8 +30,17 @@ pub enum SpeechRouteError {
 
 impl ResponseError for SpeechRouteError {
     fn error_response(&self) -> HttpResponse {
-        error!("{}", self);
-        HttpResponse::InternalServerError().finish()
+        match self {
+            SpeechRouteError::OpenAIError(openai::error::Error::RateLimit)
+            | SpeechRouteError::GcpError(gcp::error::Error::RateLimit) => {
+                HttpResponse::TooManyRequests().finish()
+            }
+            SpeechRouteError::UnsupportedVendor(_) => HttpResponse::NotImplemented().finish(),
+            _ => {
+                error!("{}", self);
+                HttpResponse::InternalServerError().finish()
+            }
+        }
     }
 }
 
