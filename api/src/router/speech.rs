@@ -199,12 +199,7 @@ pub async fn openai_speech(
     } else {
         if let Some(openai_client) = &app_state.maybe_openai_client {
             let original_audio_stream = openai_client
-                .generate_speech_stream(
-                    &request.text,
-                    &request.model,
-                    &request.voice,
-                    audio_format,
-                )
+                .generate_speech_stream(&request.text, &request.model, &request.voice, audio_format)
                 .await?;
 
             let audio_stream =
