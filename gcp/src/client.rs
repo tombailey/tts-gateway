@@ -188,9 +188,9 @@ impl GcpClient {
 
     pub async fn generate_speech_stream(
         &self,
-        text: &str,
-        voice: &Voice,
-        audio_config: &AudioConfig,
+        _text: &str,
+        _voice: &Voice,
+        _audio_config: &AudioConfig,
     ) -> Result<AudioStream, Error> {
         todo!("parse stream as JSON, decode 'audioContent'");
     }
