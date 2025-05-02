@@ -113,32 +113,30 @@ pub async fn gcp_speech(
                     .instrument(tracing::info_span!("gcp-speech-cache-retrieval"))
                     .into_inner(),
             ))
-    } else {
-        if let Some(gcp_client) = &app_state.maybe_gcp_client {
-            // TODO: support streaming
-            let audio_bytes = gcp_client
-                .generate_speech(&request.text, &request.voice, &request.audio_config)
-                .instrument(tracing::info_span!("gcp-speech-generation"))
-                .await?;
+    } else if let Some(gcp_client) = &app_state.maybe_gcp_client {
+        // TODO: support streaming
+        let audio_bytes = gcp_client
+            .generate_speech(&request.text, &request.voice, &request.audio_config)
+            .instrument(tracing::info_span!("gcp-speech-generation"))
+            .await?;
 
-            if let Some(KeyCacheClient { key, cache_client }) = maybe_key_cache_client {
-                let audio_bytes_to_cache = audio_bytes.clone();
-                actix_web::rt::spawn(async move {
-                    store_in_cache(&cache_client, &key, audio_bytes_to_cache)
-                        .instrument(tracing::info_span!("gcp-speech-cache-store"))
-                        .await;
-                });
-            }
-
-            Ok(HttpResponse::Ok()
-                .content_type(audio_format.content_type())
-                .append_header((WAS_CACHED_HEADER, FALSE_STR))
-                .body(audio_bytes))
-        } else {
-            Err(SpeechRouteError::UnsupportedVendor(
-                "GCP speech is not supported".to_owned(),
-            ))
+        if let Some(KeyCacheClient { key, cache_client }) = maybe_key_cache_client {
+            let audio_bytes_to_cache = audio_bytes.clone();
+            actix_web::rt::spawn(async move {
+                store_in_cache(&cache_client, &key, audio_bytes_to_cache)
+                    .instrument(tracing::info_span!("gcp-speech-cache-store"))
+                    .await;
+            });
         }
+
+        Ok(HttpResponse::Ok()
+            .content_type(audio_format.content_type())
+            .append_header((WAS_CACHED_HEADER, FALSE_STR))
+            .body(audio_bytes))
+    } else {
+        Err(SpeechRouteError::UnsupportedVendor(
+            "GCP speech is not supported".to_owned(),
+        ))
     }
 }
 
@@ -196,45 +194,43 @@ pub async fn openai_speech(
                     .instrument(tracing::info_span!("openai-speech-cache-retrieval"))
                     .into_inner(),
             ))
-    } else {
-        if let Some(openai_client) = &app_state.maybe_openai_client {
-            let original_audio_stream = openai_client
-                .generate_speech_stream(&request.text, &request.model, &request.voice, audio_format)
-                .await?;
+    } else if let Some(openai_client) = &app_state.maybe_openai_client {
+        let original_audio_stream = openai_client
+            .generate_speech_stream(&request.text, &request.model, &request.voice, audio_format)
+            .await?;
 
-            let audio_stream =
-                match maybe_key_cache_client {
-                    None => original_audio_stream,
-                    Some(KeyCacheClient { key, cache_client }) => {
-                        let (audio_stream, audio_stream_to_cache) =
-                            duplicate(original_audio_stream, 50_usize);
-                        actix_web::rt::spawn(async move {
-                            stream_into_cache(
-                                &cache_client,
-                                &key,
-                                Box::pin(audio_stream_to_cache.map_err(|error| {
-                                    cache::error::Error::Unknown(error.to_string())
-                                })),
-                            )
-                            .instrument(tracing::info_span!("openai-speech-cache-store"))
-                            .await;
-                        });
-                        Box::pin(audio_stream)
-                    }
-                };
+        let audio_stream = match maybe_key_cache_client {
+            None => original_audio_stream,
+            Some(KeyCacheClient { key, cache_client }) => {
+                let (audio_stream, audio_stream_to_cache) =
+                    duplicate(original_audio_stream, 50_usize);
+                actix_web::rt::spawn(async move {
+                    stream_into_cache(
+                        &cache_client,
+                        &key,
+                        Box::pin(
+                            audio_stream_to_cache
+                                .map_err(|error| cache::error::Error::Unknown(error.to_string())),
+                        ),
+                    )
+                    .instrument(tracing::info_span!("openai-speech-cache-store"))
+                    .await;
+                });
+                Box::pin(audio_stream)
+            }
+        };
 
-            Ok(HttpResponse::Ok()
-                .content_type(audio_format.content_type())
-                .append_header((WAS_CACHED_HEADER, FALSE_STR))
-                .streaming(
-                    audio_stream
-                        .instrument(tracing::info_span!("openai-speech-generation"))
-                        .into_inner(),
-                ))
-        } else {
-            Err(SpeechRouteError::UnsupportedVendor(
-                "OpenAI speech is not supported".to_owned(),
+        Ok(HttpResponse::Ok()
+            .content_type(audio_format.content_type())
+            .append_header((WAS_CACHED_HEADER, FALSE_STR))
+            .streaming(
+                audio_stream
+                    .instrument(tracing::info_span!("openai-speech-generation"))
+                    .into_inner(),
             ))
-        }
+    } else {
+        Err(SpeechRouteError::UnsupportedVendor(
+            "OpenAI speech is not supported".to_owned(),
+        ))
     }
 }
