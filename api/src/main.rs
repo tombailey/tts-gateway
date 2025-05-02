@@ -60,7 +60,7 @@ fn maybe_create_openai_client(
 
 fn setup_tracing() {
     let desired_level = Level::INFO;
-    let filter_layer = LevelFilter::from(desired_level.clone());
+    let filter_layer = LevelFilter::from(desired_level);
     let json_tracing = fmt::layer()
         .json()
         .with_span_events(FmtSpan::CLOSE)
