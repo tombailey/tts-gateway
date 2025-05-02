@@ -21,7 +21,7 @@ pub(crate) fn duplicate<Value: Clone + Send + 'static, Error: Clone + Send + 'st
                 is_first_ok = first_transmit.send(item.clone()).await.is_ok();
             }
             if is_second_ok {
-                is_second_ok = second_transmit.send(item.clone()).await.is_ok();
+                is_second_ok = second_transmit.send(item).await.is_ok();
             }
         }
     });
