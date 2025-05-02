@@ -7,7 +7,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
+      attestations: write
       contents: write
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -27,13 +29,27 @@ jobs:
           components: clippy
 
       - name: Build
-        run: cargo build --release
+        run: |
+          cargo build --release
+          mkdir dist
+          mv target/release/api dist/tts-gateway
+
+      - name: Add binary checksum
+        run: shasum -a 256 dist/tts-gateway > dist/tts-gateway.sha256
+
+      - uses: actions/attest-build-provenance@v2
+        id: attestation
+        with:
+          subject-path: dist/tts-gateway
+      - name: Add binary attestation
+        run: mv ${{ steps.attestation.outputs.bundle-path }} dist/attestation.json
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/release/api
+          file: dist/*,
+          file_glob: true
           asset_name: tts-gateway
           tag: 0.0.0-${{ github.sha }}
           overwrite: false
