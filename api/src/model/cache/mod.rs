@@ -37,7 +37,7 @@ pub(crate) async fn stream_from_cache(
     key: &str,
 ) -> Option<CacheEntryStream> {
     cache_client
-        .stream_from(&key)
+        .stream_from(key)
         .await
         .inspect_err(|cache_error| match cache_error {
             cache::error::Error::MissingObject => {}
@@ -47,7 +47,7 @@ pub(crate) async fn stream_from_cache(
 }
 
 pub(crate) async fn store_in_cache(cache_client: &S3CacheClient, key: &str, bytes: Bytes) {
-    if let Err(cache_error) = cache_client.store(&key, bytes).await {
+    if let Err(cache_error) = cache_client.store(key, bytes).await {
         warn!("Cache input error: {}", cache_error);
     }
 }

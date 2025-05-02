@@ -87,7 +87,7 @@ pub async fn gcp_speech(
     let audio_format = &request.audio_config.audio_encoding;
     let maybe_key_cache_client = {
         app_state.maybe_cache_client.as_ref().map(|cache_client| {
-            let key = create_gcp_cache_key(&request.text, &request.voice, &audio_format);
+            let key = create_gcp_cache_key(&request.text, &request.voice, audio_format);
             KeyCacheClient {
                 key,
                 cache_client: cache_client.clone(),
@@ -169,7 +169,7 @@ pub async fn openai_speech(
                 &request.text,
                 &request.model,
                 &request.voice,
-                &audio_format,
+                audio_format,
             );
             KeyCacheClient {
                 key,
@@ -199,12 +199,7 @@ pub async fn openai_speech(
     } else {
         if let Some(openai_client) = &app_state.maybe_openai_client {
             let original_audio_stream = openai_client
-                .generate_speech_stream(
-                    &request.text,
-                    &request.model,
-                    &request.voice,
-                    &audio_format,
-                )
+                .generate_speech_stream(&request.text, &request.model, &request.voice, audio_format)
                 .await?;
 
             let audio_stream =
