@@ -38,7 +38,7 @@ fn maybe_create_cache_client() -> Result<Option<S3CacheClient>, cache::error::Er
     if enable_caching {
         S3CacheClient::try_new_r2_from_env()
             .or(S3CacheClient::try_new_from_env())
-            .map(|client| Some(client))
+            .map(Some)
     } else {
         Ok(None)
     }
