@@ -160,8 +160,8 @@ pub async fn openai_speech(
 ) -> Result<HttpResponse, SpeechRouteError> {
     let audio_format = request
         .response_format
-        .clone()
-        .unwrap_or(TTSAudioFormat::MP3);
+        .as_ref()
+        .unwrap_or(&TTSAudioFormat::MP3);
 
     let maybe_key_cache_client = {
         app_state.maybe_cache_client.as_ref().map(|cache_client| {
