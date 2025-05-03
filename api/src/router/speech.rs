@@ -76,6 +76,8 @@ struct GcpRequest {
     voice: Voice,
     #[serde(rename = "audioConfig")]
     audio_config: AudioConfig,
+    #[serde(rename = "cacheKey")]
+    cache_key: Option<String>,
 }
 
 impl ContentType for AudioEncoding {
@@ -91,12 +93,18 @@ impl ContentType for AudioEncoding {
 
 #[post("/v1/speech/gcp")]
 pub async fn gcp_speech(
-    (request, app_state): (web::Json<GcpRequest>, web::Data<AppState>),
+    (json_request, app_state): (web::Json<GcpRequest>, web::Data<AppState>),
 ) -> Result<HttpResponse, SpeechRouteError> {
+    let request = json_request.0;
     let audio_format = &request.audio_config.audio_encoding;
+    let text = &request.text;
+    let voice = &request.voice;
+    let maybe_cache_key = request.cache_key;
+
     let maybe_key_cache_client = {
         app_state.maybe_cache_client.as_ref().map(|cache_client| {
-            let key = create_gcp_cache_key(&request.text, &request.voice, audio_format);
+            let key =
+                maybe_cache_key.unwrap_or_else(|| create_gcp_cache_key(text, voice, audio_format));
             KeyCacheClient {
                 key,
                 cache_client: cache_client.clone(),
@@ -159,25 +167,29 @@ struct OpenAIRequest {
     voice: TTSVoice,
     #[serde(rename = "responseFormat")]
     response_format: Option<TTSAudioFormat>,
+    #[serde(rename = "cacheKey")]
+    cache_key: Option<String>,
 }
 
 #[post("/v1/speech/openai")]
 pub async fn openai_speech(
-    (request, app_state): (web::Json<OpenAIRequest>, web::Data<AppState>),
+    (json_request, app_state): (web::Json<OpenAIRequest>, web::Data<AppState>),
 ) -> Result<HttpResponse, SpeechRouteError> {
+    let request = json_request.0;
+
     let audio_format = request
         .response_format
         .as_ref()
         .unwrap_or(&TTSAudioFormat::MP3);
+    let text = &request.text;
+    let model = &request.model;
+    let voice = &request.voice;
+    let maybe_cache_key = request.cache_key;
 
     let maybe_key_cache_client = {
         app_state.maybe_cache_client.as_ref().map(|cache_client| {
-            let key = create_openai_cache_key(
-                &request.text,
-                &request.model,
-                &request.voice,
-                audio_format,
-            );
+            let key = maybe_cache_key
+                .unwrap_or_else(|| create_openai_cache_key(text, model, voice, audio_format));
             KeyCacheClient {
                 key,
                 cache_client: cache_client.clone(),
