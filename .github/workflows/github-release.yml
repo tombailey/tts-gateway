@@ -4,7 +4,58 @@ on:
   workflow_dispatch:
 
 jobs:
-  release:
+  release-arm:
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2025-02-17
+          components: rustfmt
+          targets: aarch64-unknown-linux-gnu
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2025-02-17
+          override: true
+          components: clippy
+
+      - name: Build
+        run: |
+          cargo build --release
+          mkdir dist
+          mv target/release/api dist/tts-gateway-arm
+
+      - name: Add binary checksum
+        run: shasum -a 256 dist/tts-gateway-arm > dist/tts-gateway-arm.sha256
+
+      - uses: actions/attest-build-provenance@v2
+        id: attestation
+        with:
+          subject-path: dist/tts-gateway
+      - name: Add binary attestation
+        run: mv ${{ steps.attestation.outputs.bundle-path }} dist/attestation-arm.json
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*
+          file_glob: true
+          tag: 0.0.0-${{ github.sha }}
+          overwrite: false
+          release_name: tts-gateway-0.0.0-${{ github.sha }}
+          body: ""
+
+  release-x86:
     runs-on: ubuntu-latest
     permissions:
       attestations: write
@@ -32,17 +83,17 @@ jobs:
         run: |
           cargo build --release
           mkdir dist
-          mv target/release/api dist/tts-gateway
+          mv target/release/api dist/tts-gateway-x86
 
       - name: Add binary checksum
-        run: shasum -a 256 dist/tts-gateway > dist/tts-gateway.sha256
+        run: shasum -a 256 dist/tts-gateway-x86 > dist/tts-gateway-x86.sha256
 
       - uses: actions/attest-build-provenance@v2
         id: attestation
         with:
           subject-path: dist/tts-gateway
       - name: Add binary attestation
-        run: mv ${{ steps.attestation.outputs.bundle-path }} dist/attestation.json
+        run: mv ${{ steps.attestation.outputs.bundle-path }} dist/attestation-x86.json
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
@@ -50,7 +101,6 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: dist/*
           file_glob: true
-          asset_name: tts-gateway
           tag: 0.0.0-${{ github.sha }}
           overwrite: false
           release_name: tts-gateway-0.0.0-${{ github.sha }}
