@@ -40,7 +40,7 @@ jobs:
       - uses: actions/attest-build-provenance@v2
         id: attestation
         with:
-          subject-path: dist/tts-gateway
+          subject-path: dist/tts-gateway-arm
       - name: Add binary attestation
         run: mv ${{ steps.attestation.outputs.bundle-path }} dist/attestation-arm.json
 
@@ -91,7 +91,7 @@ jobs:
       - uses: actions/attest-build-provenance@v2
         id: attestation
         with:
-          subject-path: dist/tts-gateway
+          subject-path: dist/tts-gateway-x86
       - name: Add binary attestation
         run: mv ${{ steps.attestation.outputs.bundle-path }} dist/attestation-x86.json
 
