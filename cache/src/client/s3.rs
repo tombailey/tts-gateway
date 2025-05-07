@@ -2,7 +2,7 @@ use crate::client::{CacheClient, CacheEntryStream};
 use crate::error::Error;
 use async_trait::async_trait;
 use bytes::{Bytes, BytesMut};
-use env::{env_var_or_default, require_env_var_or};
+use env::{env_var, env_var_or_default, require_env_var_or};
 use futures::{Stream, TryStreamExt, future};
 use s3::creds::Credentials;
 use s3::creds::error::CredentialsError;
@@ -15,6 +15,7 @@ pub const S3_BUCKET_NAME: &str = "S3_BUCKET_NAME";
 pub const S3_BUCKET_PREFIX: &str = "S3_BUCKET_PREFIX";
 pub(crate) const DEFAULT_S3_BUCKET_PREFIX: &str = "tts/cache";
 pub const S3_REGION: &str = "S3_REGION";
+pub const S3_ENDPOINT: &str = "S3_ENDPOINT";
 
 #[derive(Clone)]
 pub struct S3CacheClient {
@@ -59,7 +60,17 @@ impl S3CacheClient {
         let bucket_name = require_env_var_or_error(S3_BUCKET_NAME)?;
         let bucket_prefix =
             env_var_or_default(S3_BUCKET_PREFIX, DEFAULT_S3_BUCKET_PREFIX.to_owned());
-        let region = require_env_var_or_error(S3_REGION)?.parse::<Region>()?;
+
+        let maybe_endpoint = env_var(S3_ENDPOINT);
+        let region_string = require_env_var_or_error(S3_REGION)?;
+        let region = match maybe_endpoint {
+            Some(endpoint) => Region::Custom {
+                region: region_string,
+                endpoint,
+            },
+            None => region_string.parse::<Region>()?,
+        };
+
         let credentials = Credentials::default()?;
         let bucket = Bucket::new(&bucket_name, region, credentials)?.with_path_style();
         Ok(Self::new(bucket, bucket_prefix))
