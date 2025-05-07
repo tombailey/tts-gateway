@@ -4,7 +4,7 @@ use crate::voice::Voice;
 use base64::Engine as _;
 use base64::prelude::*;
 use bytes::Bytes;
-use env::require_env_var_or;
+use env::{env_var, require_env_var_or};
 use futures::Stream;
 use rand::prelude::IteratorRandom;
 use reqwest::{StatusCode, header};
@@ -27,6 +27,9 @@ pub struct GcpClient {
 }
 
 pub const GOOGLE_API_KEY: &str = "GOOGLE_API_KEY";
+pub const GOOGLE_REFERRER: &str = "GOOGLE_REFERRER";
+
+pub const REFERRER: &str = "Referer";
 
 impl From<tokio::sync::AcquireError> for Error {
     fn from(value: tokio::sync::AcquireError) -> Self {
@@ -58,8 +61,13 @@ impl From<base64::DecodeError> for Error {
     }
 }
 
-fn create_client(max_retries: u32) -> Result<ClientWithMiddleware, Error> {
-    let client = reqwest::ClientBuilder::new().build()?;
+fn create_client(
+    default_headers: header::HeaderMap,
+    max_retries: u32,
+) -> Result<ClientWithMiddleware, Error> {
+    let client = reqwest::ClientBuilder::new()
+        .default_headers(default_headers)
+        .build()?;
     Ok(match max_retries {
         0 => reqwest_middleware::ClientBuilder::new(client).build(),
         _ => reqwest_middleware::ClientBuilder::new(client)
@@ -73,15 +81,25 @@ fn create_client(max_retries: u32) -> Result<ClientWithMiddleware, Error> {
 const REQUESTS_PER_STREAM: usize = 90;
 
 impl GcpClient {
-    pub fn try_new(api_key: String, max_clients: usize, max_retries: u32) -> Result<Self, Error> {
+    pub fn try_new(
+        api_key: String,
+        maybe_referrer: Option<String>,
+        max_clients: usize,
+        max_retries: u32,
+    ) -> Result<Self, Error> {
         if max_clients == 0 {
             return Err(Error::InvalidMaxClients);
+        }
+
+        let mut default_headers = header::HeaderMap::new();
+        if let Some(referrer) = maybe_referrer {
+            default_headers.insert(REFERRER, referrer.parse()?);
         }
 
         let clients = (0..max_clients)
             .map(|_| {
                 Ok(ClientSemaphorePair {
-                    client: create_client(max_retries)?,
+                    client: create_client(default_headers.clone(), max_retries)?,
                     semaphore: Semaphore::new(REQUESTS_PER_STREAM),
                 })
             })
@@ -92,7 +110,8 @@ impl GcpClient {
 
     pub fn try_new_from_env(max_clients: usize, max_retries: u32) -> Result<Self, Error> {
         let api_key = require_env_var_or(GOOGLE_API_KEY, Error::InvalidApiKey)?;
-        Self::try_new(api_key, max_clients, max_retries)
+        let maybe_referrer = env_var(GOOGLE_REFERRER);
+        Self::try_new(api_key, maybe_referrer, max_clients, max_retries)
     }
 }
 
