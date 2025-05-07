@@ -5,7 +5,7 @@ on:
 
 jobs:
   release-arm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       attestations: write
       contents: write
@@ -29,6 +29,8 @@ jobs:
           components: clippy
 
       - name: Build
+        env:
+          TARGET: aarch64-unknown-linux-gnu
         run: |
           cargo build --release
           mkdir dist
@@ -80,6 +82,8 @@ jobs:
           components: clippy
 
       - name: Build
+        env:
+          TARGET: x86_64-unknown-linux-gnu
         run: |
           cargo build --release
           mkdir dist
