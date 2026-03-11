@@ -28,13 +28,13 @@ env = { path = "./env" }
 futures = "0.3.29"
 gcp = { path = "./gcp" }
 openai = { path = "./openai" }
-rand = "0.9.1"
-reqwest = { version = "0.12.15", features = ["rustls-tls", "stream"] }
-reqwest-middleware = { version = "0.3", features = ["json", "rustls-tls"] }
-reqwest-retry = "0.7.0"
-rust-s3 = { version = "0.34.0", features = ["tokio-rustls-tls"] }
+rand = "0.10.0"
+reqwest = { version = "0.13", features = ["rustls", "stream"] }
+reqwest-middleware = { version = "0.5", features = ["json", "rustls"] }
+reqwest-retry = "0.9"
+rust-s3 = { version = "0.37.1", features = ["tokio-rustls-tls"] }
 serde = { version = "1.0.144", features = ["derive"] }
-serde-enum-str = "0.4.0"
+serde-enum-str = "0.5.0"
 serde_json = "1"
 thiserror = "2.0.12"
 tokio = { version = "1.44", features = ["macros", "sync"] }
