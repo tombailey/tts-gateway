@@ -49,9 +49,9 @@ impl From<Utf8Error> for Error {
 }
 
 impl S3CacheClient {
-    pub fn new(bucket: Bucket, bucket_prefix: String) -> Self {
+    pub fn new(bucket: Box<Bucket>, bucket_prefix: String) -> Self {
         S3CacheClient {
-            bucket: Box::new(bucket),
+            bucket,
             bucket_prefix,
         }
     }
