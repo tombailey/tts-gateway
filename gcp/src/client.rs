@@ -116,18 +116,18 @@ impl GcpClient {
 }
 
 impl ClientSemaphorePair {
-    async fn acquire(&self) -> Result<(&ClientWithMiddleware, SemaphorePermit), Error> {
+    async fn acquire(&self) -> Result<(&ClientWithMiddleware, SemaphorePermit<'_>), Error> {
         Ok((&self.client, self.semaphore.acquire().await?))
     }
 
-    fn try_acquire(&self) -> Option<(&ClientWithMiddleware, SemaphorePermit)> {
+    fn try_acquire(&self) -> Option<(&ClientWithMiddleware, SemaphorePermit<'_>)> {
         let maybe_permit = self.semaphore.try_acquire().ok();
         maybe_permit.map(|permit| (&self.client, permit))
     }
 }
 
 impl GcpClient {
-    pub async fn next_client(&self) -> Result<(&ClientWithMiddleware, SemaphorePermit), Error> {
+    pub async fn next_client(&self) -> Result<(&ClientWithMiddleware, SemaphorePermit<'_>), Error> {
         if self.clients.len() < 2 {
             let first_pair = self.clients.first().expect("No GCP clients");
             first_pair.acquire().await
